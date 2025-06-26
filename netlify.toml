@@ -5,6 +5,7 @@
 [build.environment]
   NODE_VERSION = "18"
   NPM_VERSION = "8"
+  # 数据库配置将从环境变量中读取
 
 [[redirects]]
   from = "/api/*"

@@ -16,13 +16,19 @@
     "test:hf": "node scripts/test-huggingface.js",
     "setup": "npm install && bash scripts/check-lean.sh",
     "deploy:vercel": "vercel --prod",
-    "deploy:netlify": "netlify deploy --prod"
+    "deploy:netlify": "netlify deploy --prod",
+    "db:migrate": "node database/migrate.js",
+    "db:setup": "node scripts/setup-database.js",
+    "db:check": "node scripts/check-database.js",
+    "test:deployment": "node scripts/test-deployment.js",
+    "postbuild": "npm run db:setup"
   },
   "dependencies": {
     "next": "14.0.4",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "openai": "^4.0.0"
+    "openai": "^4.0.0",
+    "@supabase/supabase-js": "^2.38.0"
   },
   "devDependencies": {
     "eslint": "^8.0.0",

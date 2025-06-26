@@ -95,6 +95,9 @@ ENABLE_LEAN_VERIFICATION=false
 - `npm run lean:check` - 检查 Lean 4 安装状态
 - `npm run test:hf` - 测试 Hugging Face API 集成
 - `npm run setup` - 完整项目设置检查
+- `npm run db:setup` - 初始化数据库数据
+- `npm run db:check` - 检查数据库状态
+- `npm run db:migrate` - 完整数据迁移 (本地JSON → 数据库)
 
 ## 📖 使用指南
 
@@ -183,16 +186,49 @@ LeanAtom/
 
 ## 🚀 部署
 
-### Vercel 部署
+### 🌟 推荐: Netlify + Supabase 数据库部署
+
+**最佳实践**: 使用 Supabase 数据库 + Netlify 托管，获得更好的性能和可扩展性
+
+#### 快速开始 (10 分钟)
+
+1. **创建 Supabase 项目**
+   - 访问 [supabase.com](https://supabase.com) 创建免费项目
+   - 获取 Project URL 和 API Keys
+
+2. **一键部署到 Netlify**
+   - 连接 GitHub 仓库: `https://github.com/baoqj/leanatom`
+   - 配置环境变量 (见下方配置)
+   - 自动部署 + 数据库初始化
+
+3. **环境变量配置**
+   ```env
+   # 数据库配置
+   NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_service_key
+   USE_DATABASE=true
+
+   # LLM 配置
+   LLM_PROVIDER=huggingface
+   HUGGINGFACE_API_KEY=your_hf_key
+   ENABLE_LEAN_VERIFICATION=false
+   ```
+
+📖 **详细指南**: [数据库部署指南](docs/QUICK_START_DATABASE.md)
+
+### 传统部署方式
+
+#### Vercel 部署 (文件模式)
 
 1. **连接 GitHub**: 在 Vercel 控制台连接您的 GitHub 仓库
 2. **配置环境变量**: 在 Vercel 项目设置中添加环境变量
 3. **自动部署**: 推送代码到 main 分支即可自动部署
 
-### Netlify 部署
+#### Netlify 部署 (文件模式)
 
 1. **连接仓库**: 在 Netlify 控制台连接 GitHub 仓库
-2. **构建设置**: 
+2. **构建设置**:
    - Build command: `npm run build`
    - Publish directory: `.next`
 3. **环境变量**: 在站点设置中配置环境变量
@@ -267,8 +303,8 @@ example : actual_velocity 0.01 0.3 = 0.01 / 0.3 := by rfl
 
 如有问题或建议，请通过以下方式联系：
 
-- 项目 Issues: [GitHub Issues](https://github.com/your-repo/issues)
-- 邮箱: your-email@example.com
+- 项目 Issues: [GitHub Issues](https://github.com/baoqj/issues)
+- 邮箱: polluxbao@gmail.com
 
 ---
 
