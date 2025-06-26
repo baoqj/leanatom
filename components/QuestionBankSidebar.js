@@ -285,8 +285,20 @@ export default function QuestionBankSidebar({
         });
 
         if (deleteResponse.ok) {
-          loadCategories();
-          loadStatistics();
+          // 立即从本地状态中移除已删除的分类
+          setCategories(prev => prev.filter(cat => cat.id !== category.id));
+
+          // 如果当前选中的分类被删除，清除选中状态
+          if (selectedCategory && selectedCategory.id === category.id) {
+            setSelectedCategory(null);
+            setQuestions([]);
+          }
+
+          // 重新加载数据以确保同步
+          await Promise.all([
+            loadCategories(),
+            loadStatistics()
+          ]);
         } else {
           const errorData = await deleteResponse.json();
           alert(`删除分类失败: ${errorData.error || '未知错误'}`);
@@ -384,16 +396,33 @@ export default function QuestionBankSidebar({
         });
 
         if (response.ok) {
-          // 刷新所有数据以确保同步
-          await Promise.all([
+          // 立即从本地状态中移除已删除的问题
+          setCategories(prev => prev.map(cat => {
+            if (cat.id === question.categoryId) {
+              const updatedQuestions = (cat.questions || []).filter(q => q.id !== question.id);
+              return {
+                ...cat,
+                questions: updatedQuestions,
+                questionCount: updatedQuestions.length
+              };
+            }
+            return cat;
+          }));
+
+          // 如果当前正在查看该问题所属的分类，也要更新选中分类的状态
+          if (selectedCategory && selectedCategory.id === question.categoryId) {
+            setSelectedCategory(prev => ({
+              ...prev,
+              questions: (prev.questions || []).filter(q => q.id !== question.id),
+              questionCount: (prev.questions || []).filter(q => q.id !== question.id).length
+            }));
+          }
+
+          // 后台刷新数据以确保同步
+          Promise.all([
             loadCategories(),
             loadStatistics()
-          ]);
-
-          // 如果当前正在查看该问题所属的分类，重新加载该分类的问题
-          if (selectedCategory && selectedCategory.id === question.categoryId) {
-            await loadCategoryQuestions(selectedCategory.id);
-          }
+          ]).catch(error => console.error('后台数据刷新失败:', error));
         } else {
           const errorData = await response.json();
           alert(`删除问题失败: ${errorData.error || '未知错误'}`);

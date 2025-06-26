@@ -180,12 +180,26 @@ export default async function handler(req, res) {
             }
           ];
 
-          gptResponse = await hfClient.generateText(messages, {
-            maxTokens: 2000,
-            temperature: 0.3
+          // 添加超时控制
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('API 调用超时')), 45000); // 45秒超时
           });
+
+          gptResponse = await Promise.race([
+            hfClient.generateText(messages, {
+              maxTokens: 2000,
+              temperature: 0.3
+            }),
+            timeoutPromise
+          ]);
         } catch (apiError) {
           console.log('Hugging Face API Error, falling back to mock response:', apiError.message);
+
+          // 如果是超时或服务不可用错误，抛出错误而不是回退到模拟响应
+          if (apiError.message.includes('超时') || apiError.message.includes('504') || apiError.message.includes('503')) {
+            throw apiError;
+          }
+
           gptResponse = generateMockResponse(question, questionType);
         }
       }
@@ -196,25 +210,39 @@ export default async function handler(req, res) {
         gptResponse = generateMockResponse(question, questionType);
       } else {
         try {
-          const completion = await openai.chat.completions.create({
-            model: 'gpt-3.5-turbo',
-            messages: [
-              {
-                role: 'system',
-                content: '你是一个专业的 Lean 4 数学证明助手，专门帮助用户将自然语言问题转换为 Lean 代码，特别擅长地球化学和环境科学建模。'
-              },
-              {
-                role: 'user',
-                content: prompt
-              }
-            ],
-            max_tokens: 2000,
-            temperature: 0.3,
+          // 添加超时控制
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('OpenAI API 调用超时')), 45000); // 45秒超时
           });
+
+          const completion = await Promise.race([
+            openai.chat.completions.create({
+              model: 'gpt-3.5-turbo',
+              messages: [
+                {
+                  role: 'system',
+                  content: '你是一个专业的 Lean 4 数学证明助手，专门帮助用户将自然语言问题转换为 Lean 代码，特别擅长地球化学和环境科学建模。'
+                },
+                {
+                  role: 'user',
+                  content: prompt
+                }
+              ],
+              max_tokens: 2000,
+              temperature: 0.3,
+            }),
+            timeoutPromise
+          ]);
 
           gptResponse = completion.choices[0].message.content;
         } catch (apiError) {
           console.log('OpenAI API Error, falling back to mock response:', apiError.message);
+
+          // 如果是超时或服务不可用错误，抛出错误而不是回退到模拟响应
+          if (apiError.message.includes('超时') || apiError.message.includes('timeout')) {
+            throw apiError;
+          }
+
           gptResponse = generateMockResponse(question, questionType);
         }
       }
@@ -264,18 +292,50 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('API Error:', error);
 
-    // 处理不同类型的错误
-    if (error.code === 'insufficient_quota') {
-      return res.status(429).json({ error: 'OpenAI API quota exceeded' });
+    // 处理超时错误
+    if (error.message.includes('超时') || error.message.includes('timeout')) {
+      return res.status(504).json({
+        error: '请求超时',
+        message: '服务器响应时间过长，请稍后重试'
+      });
     }
 
+    // 处理模型加载错误
+    if (error.message.includes('503') || error.message.includes('正在加载')) {
+      return res.status(503).json({
+        error: '服务暂时不可用',
+        message: 'AI 模型正在加载中，请稍后重试'
+      });
+    }
+
+    // 处理频率限制错误
+    if (error.code === 'insufficient_quota' || error.message.includes('429')) {
+      return res.status(429).json({
+        error: 'API 调用频率过高',
+        message: '请稍后重试'
+      });
+    }
+
+    // 处理认证错误
     if (error.code === 'invalid_api_key') {
-      return res.status(401).json({ error: 'Invalid OpenAI API key' });
+      return res.status(401).json({
+        error: 'API 密钥无效',
+        message: 'Invalid API key'
+      });
     }
 
+    // 处理网络错误
+    if (error.message.includes('fetch') || error.message.includes('network')) {
+      return res.status(502).json({
+        error: '网络连接错误',
+        message: '无法连接到 AI 服务，请检查网络连接'
+      });
+    }
+
+    // 默认错误处理
     res.status(500).json({
       error: 'Internal server error',
-      message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
+      message: process.env.NODE_ENV === 'development' ? error.message : '服务器内部错误，请稍后重试'
     });
   }
 }

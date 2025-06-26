@@ -32,6 +32,8 @@ export default function ChatInterface() {
   const [showExplanation, setShowExplanation] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [questionBankExpanded, setQuestionBankExpanded] = useState(false);
+  const [editingMessageIndex, setEditingMessageIndex] = useState(null);
+  const [editingText, setEditingText] = useState('');
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -111,17 +113,33 @@ export default function ChatInterface() {
     }
 
     try {
+      // 添加超时控制
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60秒超时
+
       const res = await fetch('/api/lean-gpt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           question: currentInput,
           conversationHistory: messages.filter(m => m.role !== 'system')
-        })
+        }),
+        signal: controller.signal
       });
 
+      clearTimeout(timeoutId);
+
       if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
+        // 处理特定的 HTTP 状态码
+        if (res.status === 504) {
+          throw new Error('服务器响应超时，请稍后重试');
+        } else if (res.status === 503) {
+          throw new Error('服务暂时不可用，请稍后重试');
+        } else if (res.status === 429) {
+          throw new Error('请求过于频繁，请稍后重试');
+        } else {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
       }
 
       const data = await res.json();
@@ -144,9 +162,27 @@ export default function ChatInterface() {
       ));
     } catch (error) {
       console.error('Error:', error);
+
+      let errorText = '抱歉，发生了错误。';
+
+      // 处理不同类型的错误
+      if (error.name === 'AbortError') {
+        errorText = '请求超时，服务器响应时间过长。请稍后重试。';
+      } else if (error.message.includes('504')) {
+        errorText = '服务器网关超时。这通常是因为 AI 模型正在处理复杂问题。请稍等片刻后重试。';
+      } else if (error.message.includes('503')) {
+        errorText = '服务暂时不可用，可能是 AI 模型正在加载中。请稍后重试。';
+      } else if (error.message.includes('429')) {
+        errorText = '请求过于频繁，请稍等片刻后重试。';
+      } else if (error.message.includes('fetch')) {
+        errorText = '网络连接错误，请检查网络连接后重试。';
+      } else {
+        errorText = `发生了错误：${error.message}。请稍后重试。`;
+      }
+
       const errorMessage = {
         role: 'assistant',
-        text: `抱歉，发生了错误：${error.message}。请检查网络连接或稍后重试。`,
+        text: `${errorText}\n\n💡 **建议**：\n- 等待 10-30 秒后重新发送问题\n- 如果问题复杂，可以尝试简化问题描述\n- 检查网络连接是否稳定`,
         timestamp: getTimestamp(),
         isError: true
       };
@@ -166,6 +202,243 @@ export default function ChatInterface() {
       e.preventDefault();
       handleAsk();
     }
+  };
+
+  // 开始编辑消息
+  const startEditMessage = (messageIndex, messageText) => {
+    setEditingMessageIndex(messageIndex);
+    setEditingText(messageText);
+  };
+
+  // 取消编辑
+  const cancelEdit = () => {
+    setEditingMessageIndex(null);
+    setEditingText('');
+  };
+
+  // 保存编辑并重新发送
+  const saveEditAndResend = async () => {
+    if (!editingText.trim() || loading) return;
+
+    const messageIndex = editingMessageIndex;
+    const newText = editingText.trim();
+
+    // 取消编辑状态
+    cancelEdit();
+
+    // 创建新的用户消息
+    const userMessage = {
+      role: 'user',
+      text: newText,
+      timestamp: getTimestamp()
+    };
+
+    // 添加用户消息到对话中
+    setConversations(prev => prev.map(conv =>
+      conv.id === currentConversationId
+        ? { ...conv, messages: [...conv.messages, userMessage] }
+        : conv
+    ));
+
+    // 如果是第一条用户消息，更新对话标题
+    if (messages.filter(m => m.role === 'user').length === 0) {
+      updateConversationTitle(currentConversationId, newText);
+    }
+
+    // 发送请求
+    setLoading(true);
+    try {
+      // 添加超时控制
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60秒超时
+
+      const res = await fetch('/api/lean-gpt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: newText,
+          conversationHistory: messages.filter(m => m.role !== 'system')
+        }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        // 处理特定的 HTTP 状态码
+        if (res.status === 504) {
+          throw new Error('服务器响应超时，请稍后重试');
+        } else if (res.status === 503) {
+          throw new Error('服务暂时不可用，请稍后重试');
+        } else if (res.status === 429) {
+          throw new Error('请求过于频繁，请稍后重试');
+        } else {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+      }
+
+      const data = await res.json();
+
+      const reply = {
+        role: 'assistant',
+        text: data.answer,
+        leanCode: data.leanCode,
+        questionType: data.questionType,
+        syntaxValidation: data.syntaxValidation,
+        codeInfo: data.codeInfo,
+        verification: data.verification,
+        timestamp: getTimestamp()
+      };
+
+      setConversations(prev => prev.map(conv =>
+        conv.id === currentConversationId
+          ? { ...conv, messages: [...conv.messages, reply] }
+          : conv
+      ));
+    } catch (error) {
+      console.error('Error:', error);
+
+      let errorText = '抱歉，发生了错误。';
+
+      // 处理不同类型的错误
+      if (error.name === 'AbortError') {
+        errorText = '请求超时，服务器响应时间过长。请稍后重试。';
+      } else if (error.message.includes('504')) {
+        errorText = '服务器网关超时。这通常是因为 AI 模型正在处理复杂问题。请稍等片刻后重试。';
+      } else if (error.message.includes('503')) {
+        errorText = '服务暂时不可用，可能是 AI 模型正在加载中。请稍后重试。';
+      } else if (error.message.includes('429')) {
+        errorText = '请求过于频繁，请稍等片刻后重试。';
+      } else if (error.message.includes('fetch')) {
+        errorText = '网络连接错误，请检查网络连接后重试。';
+      } else {
+        errorText = `发生了错误：${error.message}。请稍后重试。`;
+      }
+
+      const errorMessage = {
+        role: 'assistant',
+        text: `${errorText}\n\n💡 **建议**：\n- 等待 10-30 秒后重新发送问题\n- 如果问题复杂，可以尝试简化问题描述\n- 检查网络连接是否稳定`,
+        timestamp: getTimestamp(),
+        isError: true
+      };
+      setConversations(prev => prev.map(conv =>
+        conv.id === currentConversationId
+          ? { ...conv, messages: [...conv.messages, errorMessage] }
+          : conv
+      ));
+    }
+
+    setLoading(false);
+  };
+
+  // 刷新消息（重新发送或清除错误）
+  const refreshMessage = async (messageIndex) => {
+    const message = messages[messageIndex];
+    if (!message || message.role !== 'user') return;
+
+    // 检查下一条消息是否是错误消息
+    const nextMessage = messages[messageIndex + 1];
+    const isNextMessageError = nextMessage && nextMessage.role === 'assistant' && nextMessage.isError;
+
+    if (isNextMessageError) {
+      // 如果下一条是错误消息，删除错误消息并重新发送
+      setConversations(prev => prev.map(conv =>
+        conv.id === currentConversationId
+          ? {
+              ...conv,
+              messages: conv.messages.filter((_, idx) => idx !== messageIndex + 1)
+            }
+          : conv
+      ));
+    }
+
+    // 重新发送用户消息
+    const userText = message.text;
+
+    // 发送请求
+    setLoading(true);
+    try {
+      // 添加超时控制
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60秒超时
+
+      const res = await fetch('/api/lean-gpt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: userText,
+          conversationHistory: messages.slice(0, messageIndex + 1).filter(m => m.role !== 'system')
+        }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        // 处理特定的 HTTP 状态码
+        if (res.status === 504) {
+          throw new Error('服务器响应超时，请稍后重试');
+        } else if (res.status === 503) {
+          throw new Error('服务暂时不可用，请稍后重试');
+        } else if (res.status === 429) {
+          throw new Error('请求过于频繁，请稍后重试');
+        } else {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+      }
+
+      const data = await res.json();
+
+      const reply = {
+        role: 'assistant',
+        text: data.answer,
+        leanCode: data.leanCode,
+        questionType: data.questionType,
+        syntaxValidation: data.syntaxValidation,
+        codeInfo: data.codeInfo,
+        verification: data.verification,
+        timestamp: getTimestamp()
+      };
+
+      setConversations(prev => prev.map(conv =>
+        conv.id === currentConversationId
+          ? { ...conv, messages: [...conv.messages, reply] }
+          : conv
+      ));
+    } catch (error) {
+      console.error('Error:', error);
+
+      let errorText = '抱歉，发生了错误。';
+
+      // 处理不同类型的错误
+      if (error.name === 'AbortError') {
+        errorText = '请求超时，服务器响应时间过长。请稍后重试。';
+      } else if (error.message.includes('504')) {
+        errorText = '服务器网关超时。这通常是因为 AI 模型正在处理复杂问题。请稍等片刻后重试。';
+      } else if (error.message.includes('503')) {
+        errorText = '服务暂时不可用，可能是 AI 模型正在加载中。请稍后重试。';
+      } else if (error.message.includes('429')) {
+        errorText = '请求过于频繁，请稍等片刻后重试。';
+      } else if (error.message.includes('fetch')) {
+        errorText = '网络连接错误，请检查网络连接后重试。';
+      } else {
+        errorText = `发生了错误：${error.message}。请稍后重试。`;
+      }
+
+      const errorMessage = {
+        role: 'assistant',
+        text: `${errorText}\n\n💡 **建议**：\n- 等待 10-30 秒后重新发送问题\n- 如果问题复杂，可以尝试简化问题描述\n- 检查网络连接是否稳定`,
+        timestamp: getTimestamp(),
+        isError: true
+      };
+      setConversations(prev => prev.map(conv =>
+        conv.id === currentConversationId
+          ? { ...conv, messages: [...conv.messages, errorMessage] }
+          : conv
+      ));
+    }
+
+    setLoading(false);
   };
 
   // 切换对话
@@ -393,23 +666,158 @@ export default function ChatInterface() {
               }}>
                 {msg.role === 'user' ? (
                   // 用户消息
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                    marginBottom: '0.5rem'
-                  }}>
+                  <div>
                     <div style={{
-                      maxWidth: '70%',
-                      padding: '1rem 1.25rem',
-                      backgroundColor: '#3182ce',
-                      color: 'white',
-                      borderRadius: '18px 18px 4px 18px',
-                      fontSize: '0.95rem',
-                      lineHeight: '1.5',
-                      wordBreak: 'break-word'
+                      display: 'flex',
+                      justifyContent: 'flex-end',
+                      marginBottom: '0.5rem'
                     }}>
-                      {msg.text}
+                      <div style={{
+                        maxWidth: '70%',
+                        padding: '1rem 1.25rem',
+                        backgroundColor: '#3182ce',
+                        color: 'white',
+                        borderRadius: '18px 18px 4px 18px',
+                        fontSize: '0.95rem',
+                        lineHeight: '1.5',
+                        wordBreak: 'break-word'
+                      }}>
+                        {editingMessageIndex === index ? (
+                          // 编辑模式
+                          <div>
+                            <textarea
+                              value={editingText}
+                              onChange={(e) => setEditingText(e.target.value)}
+                              style={{
+                                width: '100%',
+                                minHeight: '60px',
+                                padding: '0.5rem',
+                                border: 'none',
+                                borderRadius: '8px',
+                                fontSize: '0.95rem',
+                                lineHeight: '1.5',
+                                resize: 'vertical',
+                                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                color: '#2d3748'
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && e.ctrlKey) {
+                                  e.preventDefault();
+                                  saveEditAndResend();
+                                } else if (e.key === 'Escape') {
+                                  e.preventDefault();
+                                  cancelEdit();
+                                }
+                              }}
+                              autoFocus
+                            />
+                            <div style={{
+                              display: 'flex',
+                              gap: '0.5rem',
+                              marginTop: '0.5rem',
+                              justifyContent: 'flex-end'
+                            }}>
+                              <button
+                                onClick={saveEditAndResend}
+                                disabled={loading}
+                                style={{
+                                  padding: '0.25rem 0.75rem',
+                                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                  color: '#3182ce',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  fontSize: '0.8rem',
+                                  cursor: loading ? 'not-allowed' : 'pointer',
+                                  fontWeight: '500'
+                                }}
+                              >
+                                {loading ? '发送中...' : '发送'}
+                              </button>
+                              <button
+                                onClick={cancelEdit}
+                                style={{
+                                  padding: '0.25rem 0.75rem',
+                                  backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                                  color: '#718096',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  fontSize: '0.8rem',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                取消
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          // 显示模式
+                          msg.text
+                        )}
+                      </div>
                     </div>
+                    {/* 用户消息下方的操作按钮 */}
+                    {editingMessageIndex !== index && (
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                        gap: '0.5rem',
+                        marginBottom: '0.5rem',
+                        paddingRight: '1rem'
+                      }}>
+                        <button
+                          onClick={() => startEditMessage(index, msg.text)}
+                          disabled={loading}
+                          style={{
+                            padding: '0.25rem 0.5rem',
+                            backgroundColor: 'transparent',
+                            color: '#718096',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '6px',
+                            fontSize: '0.75rem',
+                            cursor: loading ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem'
+                          }}
+                          onMouseOver={(e) => {
+                            e.target.style.backgroundColor = '#f7fafc';
+                            e.target.style.borderColor = '#cbd5e0';
+                          }}
+                          onMouseOut={(e) => {
+                            e.target.style.backgroundColor = 'transparent';
+                            e.target.style.borderColor = '#e2e8f0';
+                          }}
+                        >
+                          ✏️ 修改
+                        </button>
+                        <button
+                          onClick={() => refreshMessage(index)}
+                          disabled={loading}
+                          style={{
+                            padding: '0.25rem 0.5rem',
+                            backgroundColor: 'transparent',
+                            color: '#718096',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '6px',
+                            fontSize: '0.75rem',
+                            cursor: loading ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem'
+                          }}
+                          onMouseOver={(e) => {
+                            e.target.style.backgroundColor = '#f7fafc';
+                            e.target.style.borderColor = '#cbd5e0';
+                          }}
+                          onMouseOut={(e) => {
+                            e.target.style.backgroundColor = 'transparent';
+                            e.target.style.borderColor = '#e2e8f0';
+                          }}
+                        >
+                          🔄 刷新
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ) : msg.role === 'assistant' ? (
                   // AI 回复
