@@ -246,7 +246,7 @@ export default function QuestionBankSidebar({
         body: JSON.stringify({
           action: 'updateCategory',
           categoryId: editingCategory.id,
-          category: categoryData
+          updates: categoryData
         })
       });
 
@@ -280,13 +280,8 @@ export default function QuestionBankSidebar({
       }
 
       if (confirm(`确定要删除分组"${category.name}"吗？`)) {
-        const deleteResponse = await fetch('/api/question-bank', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'deleteCategory',
-            categoryId: category.id
-          })
+        const deleteResponse = await fetch(`/api/question-bank?action=deleteCategory&categoryId=${category.id}`, {
+          method: 'DELETE'
         });
 
         if (deleteResponse.ok) {
@@ -354,7 +349,7 @@ export default function QuestionBankSidebar({
         body: JSON.stringify({
           action: 'updateQuestion',
           questionId: editingQuestion.id,
-          question: questionData
+          updates: questionData
         })
       });
 
@@ -384,13 +379,8 @@ export default function QuestionBankSidebar({
   const handleDeleteQuestion = async (question) => {
     if (confirm(`确定要删除问题"${question.title}"吗？`)) {
       try {
-        const response = await fetch('/api/question-bank', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'deleteQuestion',
-            questionId: question.id
-          })
+        const response = await fetch(`/api/question-bank?action=deleteQuestion&questionId=${question.id}`, {
+          method: 'DELETE'
         });
 
         if (response.ok) {
