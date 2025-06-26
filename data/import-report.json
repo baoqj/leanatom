@@ -1,0 +1,26 @@
+{
+  "timestamp": "2025-06-26T14:51:20.490Z",
+  "source": {
+    "categoriesCount": 8,
+    "questionsCount": 80,
+    "tagsCount": 206
+  },
+  "imported": {
+    "categoriesCount": 0,
+    "questionsCount": 80
+  },
+  "skipped": {
+    "categoriesCount": 8
+  },
+  "final": {
+    "totalCategories": 8,
+    "totalQuestions": 80,
+    "totalTags": 206,
+    "difficultyDistribution": {
+      "easy": 22,
+      "medium": 40,
+      "hard": 18
+    },
+    "lastUpdated": "2025-06-26T14:51:20.487Z"
+  }
+}

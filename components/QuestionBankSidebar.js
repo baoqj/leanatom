@@ -16,6 +16,7 @@ export default function QuestionBankSidebar({
   const [showAllTags, setShowAllTags] = useState(false);
   const [allTags, setAllTags] = useState([]);
   const [showAddCategory, setShowAddCategory] = useState(false);
+  const [showAddQuestion, setShowAddQuestion] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [showCategoryMenu, setShowCategoryMenu] = useState(null);
@@ -47,11 +48,15 @@ export default function QuestionBankSidebar({
     if (categories.length > 0) {
       const tagCount = {};
       categories.forEach(category => {
-        category.questions.forEach(question => {
-          question.tags.forEach(tag => {
-            tagCount[tag] = (tagCount[tag] || 0) + 1;
+        if (category.questions && Array.isArray(category.questions)) {
+          category.questions.forEach(question => {
+            if (question.tags && Array.isArray(question.tags)) {
+              question.tags.forEach(tag => {
+                tagCount[tag] = (tagCount[tag] || 0) + 1;
+              });
+            }
           });
-        });
+        }
       });
 
       const sortedTags = Object.entries(tagCount)
@@ -82,6 +87,24 @@ export default function QuestionBankSidebar({
       setStatistics(data.statistics);
     } catch (error) {
       console.error('加载统计信息失败:', error);
+    }
+  };
+
+  const loadCategoryQuestions = async (categoryId) => {
+    try {
+      const response = await fetch(`/api/question-bank?action=questions&categoryId=${categoryId}`);
+      const data = await response.json();
+
+      // 更新选中分类的问题数据
+      setCategories(prevCategories =>
+        prevCategories.map(cat =>
+          cat.id === categoryId
+            ? { ...cat, questions: data.questions || [] }
+            : cat
+        )
+      );
+    } catch (error) {
+      console.error('加载分类问题失败:', error);
     }
   };
 
@@ -185,9 +208,14 @@ export default function QuestionBankSidebar({
       if (response.ok) {
         loadCategories();
         setShowAddCategory(false);
+      } else {
+        const errorData = await response.json();
+        console.error('添加分类失败:', errorData);
+        alert(`添加分类失败: ${errorData.error || '未知错误'}`);
       }
     } catch (error) {
       console.error('添加分类失败:', error);
+      alert(`添加分类失败: ${error.message}`);
     }
   };
 
@@ -215,8 +243,9 @@ export default function QuestionBankSidebar({
 
   // 删除分类
   const handleDeleteCategory = async (category) => {
-    if (category.questions.length > 0) {
-      alert(`无法删除分组"${category.name}"，请先删除该分组中的所有问题（共${category.questions.length}个问题）。`);
+    const questionCount = category.questions?.length || 0;
+    if (questionCount > 0) {
+      alert(`无法删除分组"${category.name}"，请先删除该分组中的所有问题（共${questionCount}个问题）。`);
       return;
     }
 
@@ -237,6 +266,38 @@ export default function QuestionBankSidebar({
       } catch (error) {
         console.error('删除分类失败:', error);
       }
+    }
+  };
+
+  // 添加问题
+  const handleAddQuestion = async (questionData) => {
+    try {
+      const response = await fetch('/api/question-bank', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'addQuestion',
+          categoryId: questionData.categoryId,
+          question: {
+            title: questionData.title,
+            content: questionData.content,
+            difficulty: questionData.difficulty,
+            tags: questionData.tags
+          }
+        })
+      });
+
+      if (response.ok) {
+        loadCategories();
+        setShowAddQuestion(false);
+      } else {
+        const errorData = await response.json();
+        console.error('添加问题失败:', errorData);
+        alert(`添加问题失败: ${errorData.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('添加问题失败:', error);
+      alert(`添加问题失败: ${error.message}`);
     }
   };
 
@@ -324,26 +385,60 @@ export default function QuestionBankSidebar({
           alignItems: 'center',
           marginBottom: '1rem'
         }}>
-          <h2 style={{
-            margin: 0,
-            fontSize: expanded && selectedCategory ? '1.5rem' : '1.25rem',
-            fontWeight: '700',
-            color: expanded && selectedCategory ? '#1a365d' : '#2d3748',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            textShadow: expanded && selectedCategory ? '0 1px 2px rgba(0,0,0,0.1)' : 'none'
-          }}>
-            {expanded && selectedCategory ? (
-              <>
-                🗂️ {selectedCategory.name} {formatNumber(selectedCategory.questions.length)}
-              </>
-            ) : (
-              <>
-                📚 问题库
-              </>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
+            <h2 style={{
+              margin: 0,
+              fontSize: expanded && selectedCategory ? '1.5rem' : '1.25rem',
+              fontWeight: '700',
+              color: expanded && selectedCategory ? '#1a365d' : '#2d3748',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              textShadow: expanded && selectedCategory ? '0 1px 2px rgba(0,0,0,0.1)' : 'none'
+            }}>
+              {expanded && selectedCategory ? (
+                <>
+                  🗂️ {selectedCategory.name} {formatNumber(selectedCategory.questions?.length || 0)}
+                </>
+              ) : (
+                <>
+                  📚 问题库
+                </>
+              )}
+            </h2>
+
+            {/* 增加问题按钮 - 只在选中分类时显示 */}
+            {expanded && selectedCategory && (
+              <button
+                onClick={() => setShowAddQuestion(true)}
+                style={{
+                  background: 'linear-gradient(135deg, #4299e1 0%, #3182ce 100%)',
+                  border: 'none',
+                  borderRadius: '6px',
+                  color: 'white',
+                  fontSize: '0.75rem',
+                  fontWeight: '600',
+                  padding: '0.375rem 0.75rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  transition: 'all 0.2s',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.transform = 'translateY(-1px)';
+                  e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                }}
+              >
+                ➕ 增加问题
+              </button>
             )}
-          </h2>
+          </div>
           {expanded && (
             <button
               onClick={onClose}
@@ -387,11 +482,11 @@ export default function QuestionBankSidebar({
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span>🗂️ 分类:</span>
-              {formatNumber(statistics.totalCategories)}
+              {formatNumber(statistics?.totalCategories || 0)}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span>❓ 问题:</span>
-              {formatNumber(statistics.totalQuestions)}
+              {formatNumber(statistics?.totalQuestions || 0)}
             </div>
             <div style={{
               display: 'flex',
@@ -402,15 +497,15 @@ export default function QuestionBankSidebar({
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <span>简单</span>
-                {formatNumber(statistics.questionsByDifficulty.easy, 'easy')}
+                {formatNumber(statistics.difficultyDistribution?.easy || 0, 'easy')}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <span>中等</span>
-                {formatNumber(statistics.questionsByDifficulty.medium, 'medium')}
+                {formatNumber(statistics.difficultyDistribution?.medium || 0, 'medium')}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <span>困难</span>
-                {formatNumber(statistics.questionsByDifficulty.hard, 'hard')}
+                {formatNumber(statistics.difficultyDistribution?.hard || 0, 'hard')}
               </div>
             </div>
           </div>
@@ -623,7 +718,10 @@ export default function QuestionBankSidebar({
                 {categories.map((category) => (
                   <div
                     key={category.id}
-                    onClick={() => onCategorySelect(category)}
+                    onClick={() => {
+                      onCategorySelect(category);
+                      loadCategoryQuestions(category.id);
+                    }}
                     style={{
                       padding: '1rem',
                       margin: '0.5rem 0',
@@ -659,7 +757,7 @@ export default function QuestionBankSidebar({
                           flex: 1
                         }}
                       >
-                        🗂️ {category.name} ({category.questions.length})
+                        🗂️ {category.name} ({category.questions?.length || 0})
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
 
@@ -764,7 +862,7 @@ export default function QuestionBankSidebar({
           // 显示问题列表
           selectedCategory && (
             <div>
-              {selectedCategory.questions.map((question) => (
+              {(selectedCategory.questions || []).map((question) => (
                 <div
                   key={question.id}
                   onClick={() => onQuestionSelect(question.content)}
@@ -980,6 +1078,15 @@ export default function QuestionBankSidebar({
         <AddCategoryDialog
           onSave={handleAddCategory}
           onClose={() => setShowAddCategory(false)}
+        />
+      )}
+
+      {/* 增加问题对话框 */}
+      {showAddQuestion && (
+        <AddQuestionDialog
+          categoryId={selectedCategory?.id}
+          onSave={handleAddQuestion}
+          onClose={() => setShowAddQuestion(false)}
         />
       )}
 
@@ -1207,6 +1314,165 @@ function EditCategoryDialog({ category, onSave, onClose }) {
               }}
             >
               保存
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// 添加问题对话框组件
+function AddQuestionDialog({ categoryId, onSave, onClose }) {
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [difficulty, setDifficulty] = useState('medium');
+  const [tags, setTags] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (title.trim() && content.trim()) {
+      onSave({
+        title: title.trim(),
+        content: content.trim(),
+        difficulty,
+        categoryId,
+        tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag)
+      });
+    }
+  };
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000
+    }}>
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '8px',
+        padding: '2rem',
+        width: '500px',
+        maxWidth: '90vw',
+        maxHeight: '90vh',
+        overflow: 'auto'
+      }}>
+        <h3 style={{ margin: '0 0 1rem 0' }}>增加问题</h3>
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+              问题标题
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                border: '1px solid #e2e8f0',
+                borderRadius: '4px',
+                fontSize: '0.875rem'
+              }}
+              placeholder="请输入问题标题"
+              required
+            />
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+              问题内容
+            </label>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                border: '1px solid #e2e8f0',
+                borderRadius: '4px',
+                fontSize: '0.875rem',
+                minHeight: '120px',
+                resize: 'vertical'
+              }}
+              placeholder="请输入详细的问题描述..."
+              required
+            />
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+              难度等级
+            </label>
+            <select
+              value={difficulty}
+              onChange={(e) => setDifficulty(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                border: '1px solid #e2e8f0',
+                borderRadius: '4px',
+                fontSize: '0.875rem'
+              }}
+            >
+              <option value="easy">简单</option>
+              <option value="medium">中等</option>
+              <option value="hard">困难</option>
+            </select>
+          </div>
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+              标签 (用逗号分隔)
+            </label>
+            <input
+              type="text"
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                border: '1px solid #e2e8f0',
+                borderRadius: '4px',
+                fontSize: '0.875rem'
+              }}
+              placeholder="例如: 地球化学, 环境科学, 数学建模"
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                padding: '0.75rem 1.5rem',
+                border: '1px solid #e2e8f0',
+                borderRadius: '4px',
+                backgroundColor: 'white',
+                cursor: 'pointer'
+              }}
+            >
+              取消
+            </button>
+            <button
+              type="submit"
+              style={{
+                padding: '0.75rem 1.5rem',
+                border: 'none',
+                borderRadius: '4px',
+                backgroundColor: '#3182ce',
+                color: 'white',
+                cursor: 'pointer'
+              }}
+            >
+              添加
             </button>
           </div>
         </form>

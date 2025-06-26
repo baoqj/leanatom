@@ -6,6 +6,19 @@
       "description": "铀及其他放射性核素的衰变、迁移和浓度变化问题",
       "questions": [
         {
+          "id": "uranium-concentration-limit",
+          "title": "地下水中铀浓度上限问题",
+          "content": "请证明：在流速 v = 0.01 m/yr，衰变常数 λ = 1e-5 /yr，滞留因子 R ≤ 1.2 的情况下，经过 t = 10,000 yr，铀在单向流动下的浓度 C(x,t) 不会超过 0.015 mg/L，前提是初始浓度 C₀ = 0.02 mg/L。",
+          "tags": [
+            "铀",
+            "衰变",
+            "浓度",
+            "地下水"
+          ],
+          "difficulty": "medium",
+          "createdAt": "2024-01-01"
+        },
+        {
           "id": "radon-migration",
           "title": "放射性核素的迁移距离估算",
           "content": "设 Rn-222 的半衰期为 3.82 d，地下水流速 0.2 m/day，不考虑扩散作用，证明 Rn-222 在完全衰变前的迁移距离不超过 1.5 m。",

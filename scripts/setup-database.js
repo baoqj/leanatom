@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+// 加载环境变量
+require('dotenv').config({ path: '.env.local' });
+
 // 数据库设置脚本 - 用于 Netlify 部署时自动设置数据库
 const { createClient } = require('@supabase/supabase-js');
 

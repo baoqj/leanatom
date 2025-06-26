@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>测试前端功能</title>
+</head>
+<body>
+    <h1>测试 LeanAtom 前端功能</h1>
+    
+    <h2>测试添加分类</h2>
+    <button onclick="testAddCategory()">测试添加分类</button>
+    <div id="categoryResult"></div>
+    
+    <h2>测试添加问题</h2>
+    <button onclick="testAddQuestion()">测试添加问题</button>
+    <div id="questionResult"></div>
+    
+    <script>
+        async function testAddCategory() {
+            try {
+                const response = await fetch('http://localhost:3000/api/question-bank', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'addCategory',
+                        category: {
+                            name: '前端测试分组',
+                            description: '通过前端测试页面创建的分组'
+                        }
+                    })
+                });
+                
+                const result = await response.json();
+                document.getElementById('categoryResult').innerHTML = 
+                    `<pre>${JSON.stringify(result, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('categoryResult').innerHTML = 
+                    `<p style="color: red;">错误: ${error.message}</p>`;
+            }
+        }
+        
+        async function testAddQuestion() {
+            try {
+                const response = await fetch('http://localhost:3000/api/question-bank', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'addQuestion',
+                        categoryId: 'uranium-decay',
+                        question: {
+                            title: '前端测试问题',
+                            content: '通过前端测试页面创建的问题',
+                            difficulty: 'medium',
+                            tags: ['前端测试', '自动化测试']
+                        }
+                    })
+                });
+                
+                const result = await response.json();
+                document.getElementById('questionResult').innerHTML = 
+                    `<pre>${JSON.stringify(result, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('questionResult').innerHTML = 
+                    `<p style="color: red;">错误: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
