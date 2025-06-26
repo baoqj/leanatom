@@ -1,15 +1,5 @@
 {
   "name": "leanatom",
-  "env": {
-    "LLM_PROVIDER": "@llm-provider",
-    "HUGGINGFACE_API_KEY": "@huggingface-api-key",
-    "OPENAI_API_KEY": "@openai-api-key",
-    "ENABLE_LEAN_VERIFICATION": "@enable-lean-verification",
-    "NEXT_PUBLIC_SUPABASE_URL": "@supabase-url",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@supabase-anon-key",
-    "SUPABASE_SERVICE_ROLE_KEY": "@supabase-service-key",
-    "USE_DATABASE": "@use-database"
-  },
   "functions": {
     "pages/api/lean-gpt.js": {
       "maxDuration": 30
