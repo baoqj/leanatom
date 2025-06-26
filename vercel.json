@@ -1,0 +1,32 @@
+{
+  "name": "leanatom",
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ],
+  "env": {
+    "OPENAI_API_KEY": "@openai-api-key",
+    "ENABLE_LEAN_VERIFICATION": "@enable-lean-verification"
+  },
+  "functions": {
+    "pages/api/lean-gpt.js": {
+      "maxDuration": 30
+    },
+    "pages/api/verify-lean.js": {
+      "maxDuration": 30
+    }
+  }
+}

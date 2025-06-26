@@ -1,0 +1,53 @@
+{
+  "name": "leanatom",
+  "version": "1.0.0",
+  "description": "地球化学 + Lean 4 对话式证明助手",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lean:check": "bash scripts/check-lean.sh",
+    "lean:build": "cd lean && lake build",
+    "lean:init": "cd lean && lake exe cache get && lake build",
+    "test:hf": "node scripts/test-huggingface.js",
+    "setup": "npm install && bash scripts/check-lean.sh",
+    "deploy:vercel": "vercel --prod",
+    "deploy:netlify": "netlify deploy --prod"
+  },
+  "dependencies": {
+    "next": "14.0.4",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "openai": "^4.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "eslint-config-next": "14.0.4",
+    "jest": "^29.0.0",
+    "@testing-library/react": "^13.0.0",
+    "@testing-library/jest-dom": "^5.0.0"
+  },
+  "keywords": [
+    "lean",
+    "mathematics",
+    "geochemistry",
+    "formal-verification",
+    "ai",
+    "gpt",
+    "environmental-science"
+  ],
+  "author": "LeanAtom Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/leanatom.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/leanatom/issues"
+  },
+  "homepage": "https://leanatom.vercel.app"
+}

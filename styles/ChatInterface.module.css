@@ -1,0 +1,447 @@
+/* ChatGPT 风格的聊天界面样式 */
+
+.chatContainer {
+  display: flex;
+  height: 100vh;
+  background-color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.sidebar {
+  width: 260px;
+  background-color: #f7f9fc;
+  border-right: 1px solid #e1e5e9;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebarHeader {
+  padding: 1rem;
+  border-bottom: 1px solid #e1e5e9;
+  background-color: #ffffff;
+}
+
+.logoContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a365d;
+  letter-spacing: -0.025em;
+}
+
+.newChatButton {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #3182ce;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.newChatButton:hover {
+  background-color: #2c5aa0;
+}
+
+.conversationList {
+  flex: 1;
+  overflow: auto;
+  padding: 0.5rem;
+}
+
+.conversationItem {
+  padding: 0.75rem;
+  margin: 0.25rem 0;
+  border-radius: 8px;
+  cursor: pointer;
+  background-color: transparent;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+}
+
+.conversationItem:hover {
+  background-color: #f1f5f9;
+}
+
+.conversationItem.active {
+  background-color: #e6f3ff;
+  border: 1px solid #3182ce;
+}
+
+.conversationTitle {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #2d3748;
+  margin-bottom: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conversationDate {
+  font-size: 0.75rem;
+  color: #718096;
+}
+
+.sidebarFooter {
+  padding: 1rem;
+  border-top: 1px solid #e1e5e9;
+  background-color: #ffffff;
+}
+
+.mainContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.topBar {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e1e5e9;
+  background-color: #ffffff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.topBarTitle {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #4a5568;
+  cursor: pointer;
+}
+
+.checkboxInput {
+  width: 16px;
+  height: 16px;
+  accent-color: #3182ce;
+}
+
+.messagesArea {
+  flex: 1;
+  overflow: auto;
+  padding: 1rem 0;
+}
+
+.messagesContainer {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.messageGroup {
+  margin-bottom: 1.5rem;
+}
+
+.userMessage {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.5rem;
+}
+
+.userBubble {
+  max-width: 70%;
+  padding: 1rem 1.25rem;
+  background-color: #3182ce;
+  color: white;
+  border-radius: 18px 18px 4px 18px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.assistantMessage {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.assistantContainer {
+  max-width: 85%;
+}
+
+.assistantHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.assistantLogo {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+}
+
+.assistantName {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.leanCodeContainer {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background-color: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.leanCodeHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.leanCodeTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.copyButton {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  background-color: #e2e8f0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #4a5568;
+}
+
+.leanCode {
+  margin: 0;
+  padding: 0.75rem;
+  background-color: #1a202c;
+  color: #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  overflow: auto;
+  font-family: Monaco, Menlo, "Ubuntu Mono", monospace;
+}
+
+.explanationBubble {
+  padding: 1rem 1.25rem;
+  background-color: #f8f9fa;
+  border-radius: 18px 18px 18px 4px;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #2d3748;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.verificationResult {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+
+.verificationValid {
+  background-color: #f0fff4;
+  border: 1px solid #9ae6b4;
+}
+
+.verificationInvalid {
+  background-color: #fef5e7;
+  border: 1px solid #f6ad55;
+}
+
+.verificationTitle {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.verificationTitleValid {
+  color: #22543d;
+}
+
+.verificationTitleInvalid {
+  color: #c05621;
+}
+
+.verificationMessage {
+  color: #2f855a;
+}
+
+.verificationMessageInvalid {
+  color: #dd6b20;
+}
+
+.systemMessage {
+  text-align: center;
+  padding: 1rem;
+  color: #718096;
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+.timestamp {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  margin-top: 0.25rem;
+}
+
+.timestampUser {
+  text-align: right;
+}
+
+.timestampAssistant {
+  text-align: left;
+  padding-left: 2rem;
+}
+
+.loadingContainer {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 1rem;
+}
+
+.loadingBubble {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1.25rem;
+  background-color: #f8f9fa;
+  border-radius: 18px 18px 18px 4px;
+  color: #4a5568;
+}
+
+.loadingDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #3182ce;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.loadingDot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loadingDot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.inputArea {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e1e5e9;
+  background-color: #ffffff;
+}
+
+.inputContainer {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.inputWrapper {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.textareaContainer {
+  flex: 1;
+  position: relative;
+}
+
+.textarea {
+  width: 100%;
+  padding: 1rem 3rem 1rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 24px;
+  resize: none;
+  min-height: 48px;
+  max-height: 120px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  line-height: 1.5;
+  outline: none;
+  transition: border-color 0.2s;
+  background-color: #ffffff;
+}
+
+.textarea:focus {
+  border-color: #3182ce;
+}
+
+.sendButton {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.sendButtonEnabled {
+  background-color: #3182ce;
+  color: white;
+}
+
+.sendButtonDisabled {
+  background-color: #e2e8f0;
+  color: #a0aec0;
+  cursor: not-allowed;
+}
+
+.inputHint {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: #718096;
+  text-align: center;
+}
+
+@keyframes pulse {
+  0%, 80%, 100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
