@@ -28,6 +28,16 @@ export default function QuestionBankSidebar({
     loadStatistics();
   }, []);
 
+  // 定时自动刷新数据（每30秒）
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadCategories();
+      loadStatistics();
+    }, 30000); // 30秒刷新一次
+
+    return () => clearInterval(interval);
+  }, []);
+
   // 点击外部区域关闭菜单
   useEffect(() => {
     const handleClickOutside = () => {
