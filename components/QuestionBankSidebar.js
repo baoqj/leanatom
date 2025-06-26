@@ -109,7 +109,11 @@ export default function QuestionBankSidebar({
       setCategories(prevCategories =>
         prevCategories.map(cat =>
           cat.id === categoryId
-            ? { ...cat, questions: data.questions || [] }
+            ? {
+                ...cat,
+                questions: data.questions || [],
+                questionCount: (data.questions || []).length
+              }
             : cat
         )
       );
@@ -216,7 +220,11 @@ export default function QuestionBankSidebar({
       });
 
       if (response.ok) {
-        loadCategories();
+        // 刷新所有数据以确保同步
+        await Promise.all([
+          loadCategories(),
+          loadStatistics()
+        ]);
         setShowAddCategory(false);
       } else {
         const errorData = await response.json();
@@ -243,8 +251,15 @@ export default function QuestionBankSidebar({
       });
 
       if (response.ok) {
-        loadCategories();
+        // 刷新所有数据以确保同步
+        await Promise.all([
+          loadCategories(),
+          loadStatistics()
+        ]);
         setEditingCategory(null);
+      } else {
+        const errorData = await response.json();
+        alert(`编辑分类失败: ${errorData.error || '未知错误'}`);
       }
     } catch (error) {
       console.error('编辑分类失败:', error);
@@ -253,15 +268,19 @@ export default function QuestionBankSidebar({
 
   // 删除分类
   const handleDeleteCategory = async (category) => {
-    const questionCount = category.questions?.length || 0;
-    if (questionCount > 0) {
-      alert(`无法删除分组"${category.name}"，请先删除该分组中的所有问题（共${questionCount}个问题）。`);
-      return;
-    }
+    try {
+      // 先获取最新的问题数量
+      const response = await fetch(`/api/question-bank?action=questions&categoryId=${category.id}`);
+      const data = await response.json();
+      const questionCount = (data.questions || []).length;
 
-    if (confirm(`确定要删除分组"${category.name}"吗？`)) {
-      try {
-        const response = await fetch('/api/question-bank', {
+      if (questionCount > 0) {
+        alert(`无法删除分组"${category.name}"，请先删除该分组中的所有问题（共${questionCount}个问题）。`);
+        return;
+      }
+
+      if (confirm(`确定要删除分组"${category.name}"吗？`)) {
+        const deleteResponse = await fetch('/api/question-bank', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -270,12 +289,17 @@ export default function QuestionBankSidebar({
           })
         });
 
-        if (response.ok) {
+        if (deleteResponse.ok) {
           loadCategories();
+          loadStatistics();
+        } else {
+          const errorData = await deleteResponse.json();
+          alert(`删除分类失败: ${errorData.error || '未知错误'}`);
         }
-      } catch (error) {
-        console.error('删除分类失败:', error);
       }
+    } catch (error) {
+      console.error('删除分类失败:', error);
+      alert(`删除分类失败: ${error.message}`);
     }
   };
 
@@ -298,7 +322,17 @@ export default function QuestionBankSidebar({
       });
 
       if (response.ok) {
-        loadCategories();
+        // 刷新所有数据以确保同步
+        await Promise.all([
+          loadCategories(),
+          loadStatistics()
+        ]);
+
+        // 如果当前正在查看该分类，重新加载该分类的问题
+        if (selectedCategory && selectedCategory.id === questionData.categoryId) {
+          await loadCategoryQuestions(selectedCategory.id);
+        }
+
         setShowAddQuestion(false);
       } else {
         const errorData = await response.json();
@@ -325,8 +359,21 @@ export default function QuestionBankSidebar({
       });
 
       if (response.ok) {
-        loadCategories();
+        // 刷新所有数据以确保同步
+        await Promise.all([
+          loadCategories(),
+          loadStatistics()
+        ]);
+
+        // 如果当前正在查看该问题所属的分类，重新加载该分类的问题
+        if (selectedCategory && selectedCategory.id === editingQuestion.categoryId) {
+          await loadCategoryQuestions(selectedCategory.id);
+        }
+
         setEditingQuestion(null);
+      } else {
+        const errorData = await response.json();
+        alert(`编辑问题失败: ${errorData.error || '未知错误'}`);
       }
     } catch (error) {
       console.error('编辑问题失败:', error);
@@ -347,10 +394,23 @@ export default function QuestionBankSidebar({
         });
 
         if (response.ok) {
-          loadCategories();
+          // 刷新所有数据以确保同步
+          await Promise.all([
+            loadCategories(),
+            loadStatistics()
+          ]);
+
+          // 如果当前正在查看该问题所属的分类，重新加载该分类的问题
+          if (selectedCategory && selectedCategory.id === question.categoryId) {
+            await loadCategoryQuestions(selectedCategory.id);
+          }
+        } else {
+          const errorData = await response.json();
+          alert(`删除问题失败: ${errorData.error || '未知错误'}`);
         }
       } catch (error) {
         console.error('删除问题失败:', error);
+        alert(`删除问题失败: ${error.message}`);
       }
     }
   };
@@ -408,7 +468,7 @@ export default function QuestionBankSidebar({
             }}>
               {expanded && selectedCategory ? (
                 <>
-                  🗂️ {selectedCategory.name} {formatNumber(selectedCategory.questions?.length || 0)}
+                  🗂️ {selectedCategory.name} {formatNumber(selectedCategory.questionCount || selectedCategory.questions?.length || 0)}
                 </>
               ) : (
                 <>
@@ -767,7 +827,7 @@ export default function QuestionBankSidebar({
                           flex: 1
                         }}
                       >
-                        🗂️ {category.name} ({category.questions?.length || 0})
+                        🗂️ {category.name} ({category.questionCount || category.questions?.length || 0})
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
 
