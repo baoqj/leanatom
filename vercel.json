@@ -18,6 +18,8 @@
     }
   ],
   "env": {
+    "LLM_PROVIDER": "@llm-provider",
+    "HUGGINGFACE_API_KEY": "@huggingface-api-key",
     "OPENAI_API_KEY": "@openai-api-key",
     "ENABLE_LEAN_VERIFICATION": "@enable-lean-verification"
   },
